@@ -1,4 +1,4 @@
-A simple packet filter using pcap library:
+A simple packet sniffer using pcap library:
 
 1. To install, clone the repo and then cd into the repo
 2. Then run the following: gcc sniffer.c -o sniffer -lpcap
