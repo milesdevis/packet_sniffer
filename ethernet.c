@@ -7,7 +7,7 @@ struct ethernet_addr
 	u_int8_t addr[ETHERNET_ADDR_LENGTH];
 };
 
-struct i_ethernet_header
+struct ethernet_header
 {
 	struct ethernet_addr dst_addr;
 	struct ethernet_addr src_addr;
@@ -26,11 +26,11 @@ char* ether_addr_to_str(struct ethernet_addr *addr)
 	return res;
 }
 
-int parse_ethernet_header(
+int parse_ethernet_packet(
 	u_char *args, const struct pcap_pkthdr* pkthdr,
-	const u_char* packet, struct ethernet_header *out)
+	const u_char* packet, struct ethernet_packet *out)
 {
-	struct i_ethernet_header *header;
+	struct ethernet_header *hdr;
 
 	if (pkthdr->caplen < sizeof(struct ethernet_header))
 	{
@@ -38,24 +38,26 @@ int parse_ethernet_header(
 		return 0;
 	}
 
-	header = (struct i_ethernet_header*) packet;
+	hdr = (struct ethernet_header*) packet;
 	// ether_type = ntohs(eptr->ether_type);
-	out->type = (header->type << 8) | (header->type >> 8);
-	out->dst_addr = ether_addr_to_str(&header->dst_addr);
-	out->src_addr = ether_addr_to_str(&header->src_addr);
+	out->type = (hdr->type << 8) | (hdr->type >> 8);
+	out->dst_addr = ether_addr_to_str(&hdr->dst_addr);
+	out->src_addr = ether_addr_to_str(&hdr->src_addr);
+	out->payload = packet + sizeof(struct ethernet_header);
+	out->payload_length = pkthdr->caplen - sizeof(struct ethernet_header);
 
 	return 1;
 }
 
-void print_ethernet_header(struct ethernet_header *hdr, FILE *output)
+void print_ethernet_packet(struct ethernet_packet *packet, FILE *output)
 {
-	fprintf(output, "\tETH:\t%s\t%s", hdr->src_addr, hdr->dst_addr);
+	fprintf(output, "\tETH:\t%s -> %s", packet->src_addr, packet->dst_addr);
 
-    if (hdr->type == ETHERTYPE_IP)
+    if (packet->type == ETHERTYPE_IP)
     {
         fprintf(output,"\t(IP)\n");
     }
-	else if (hdr->type == ETHERTYPE_ARP)
+	else if (packet->type == ETHERTYPE_ARP)
     {
         fprintf(output,"\t(ARP)\n");
 	}

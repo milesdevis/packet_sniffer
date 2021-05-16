@@ -3,33 +3,34 @@
 TARGET := sniffer
 OBJ_DIR := obj
 
-SRC := sniffer.c ethernet.c
-OBJ := $(SRC:%=obj/%.o)
-DEP := $(OBJ:.o=.d)
+SRCS := sniffer.c ethernet.c ip.c
+OBJS := $(SRCS:%=$(OBJ_DIR)/%.o)
+DEPS := $(OBJS:.o=.d)
 
 CC ?= clang
+CXX ?= clang++
 CPPFLAGS ?= -I. -MMD -MP
 LDFLAGS ?= -lpcap
 
 GREEN := \e[32m
 NC := \e[0m
 
-$(TARGET): $(OBJ)
+$(TARGET): $(OBJS)
 	@echo "$(GREEN)Linking Target $@$(NC)"
-	@$(CC) $(OBJ) -o $@ $(LDFLAGS)
+	@$(CC) $(OBJS) -o $@ $(LDFLAGS)
 
-obj/%.c.o: %.c
+$(OBJ_DIR)/%.c.o: %.c
 	@echo "[CC] $@"
 	@mkdir -p $(dir $@)
 	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-obj/%.cpp.o: %.cpp
-	@echo "[CC] $@"
+$(OBJ_DIR)/%.cpp.o: %.cpp
+	@echo "[CXX] $@"
 	@mkdir -p $(dir $@)
-	@$(CC) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: clean
 clean:
 	rm -r $(OBJ_DIR) $(TARGET)
 
--include $(DEP)
+-include $(DEPS)

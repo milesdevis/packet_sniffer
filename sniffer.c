@@ -9,24 +9,36 @@
 // #include <netinet/if_ether.h>
 
 #include "ethernet.h"
+#include "ip.h"
 
 void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* packet)
 {
 	int i = 0;
 	static int count = 0;
-	struct ethernet_header ethr_hdr;
+	struct ethernet_packet ethr;
+	struct ip_packet ip;
 
 	printf("Packet Count: %d\n", ++count);
 	printf("Recieved Packet size : %d\n", pkthdr->len);
-	printf("Payload:\n");
+	// printf("Payload:\n");
 
-	if (!parse_ethernet_header(args, pkthdr, packet, &ethr_hdr))
+	if (!parse_ethernet_packet(args, pkthdr, packet, &ethr))
 	{
 		printf("Failed to parse ethernet header\n\n");
 		return;
 	}
 
-	print_ethernet_header(&ethr_hdr, stdout);
+	print_ethernet_packet(&ethr, stdout);
+	free(ethr.dst_addr);
+	free(ethr.src_addr);
+
+	if (!parse_ip_packet(ethr.payload, ethr.payload_length, &ip))
+	{
+		printf("Failed to parse ip header\n\n");
+		return;
+	}
+
+	print_ip_packet(&ip, stdout);
 
 	printf("\n");
 
@@ -40,8 +52,6 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 	// 		printf("\n");
 	// }
 
-	free(ethr_hdr.dst_addr);
-	free(ethr_hdr.src_addr);
 }
 
 int main(int argc, char **argv)

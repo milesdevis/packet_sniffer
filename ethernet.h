@@ -8,17 +8,19 @@
 #define ETHERTYPE_IP 0x0800
 #define ETHERTYPE_ARP 0x0806
 
-struct ethernet_header
+struct ethernet_packet
 {
 	char *dst_addr;
 	char *src_addr;
 	u_int16_t type;
+	const u_char *payload;
+	size_t payload_length;
 };
 
-int parse_ethernet_header(
+int parse_ethernet_packet(
 	u_char *args, const struct pcap_pkthdr* pkthdr,
-    const u_char* packet, struct ethernet_header *out);
+    const u_char* packet, struct ethernet_packet *out);
 
-void print_ethernet_header(struct ethernet_header *hdr, FILE *output);
+void print_ethernet_packet(struct ethernet_packet *hdr, FILE *output);
 
 #endif
