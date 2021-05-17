@@ -39,7 +39,7 @@ int parse_ethernet_packet(
 	}
 
 	hdr = (struct ethernet_header*) packet;
-	// ether_type = ntohs(eptr->ether_type);
+
 	out->type = (hdr->type << 8) | (hdr->type >> 8);
 	out->dst_addr = ether_addr_to_str(&hdr->dst_addr);
 	out->src_addr = ether_addr_to_str(&hdr->src_addr);

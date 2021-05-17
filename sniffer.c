@@ -10,6 +10,8 @@
 
 #include "ethernet.h"
 #include "ip.h"
+#include "udp.h"
+#include "util.h"
 
 void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* packet)
 {
@@ -17,6 +19,7 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 	static int count = 0;
 	struct ethernet_packet ethr;
 	struct ip_packet ip;
+	struct udp_packet udp;
 
 	printf("Packet Count: %d\n", ++count);
 	printf("Recieved Packet size : %d\n", pkthdr->len);
@@ -32,6 +35,12 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 	free(ethr.dst_addr);
 	free(ethr.src_addr);
 
+	if (ethr.type != ETHERTYPE_IP)
+	{
+		printf("\tUnknown protocol\n\n");
+		return;
+	}
+
 	if (!parse_ip_packet(ethr.payload, ethr.payload_length, &ip))
 	{
 		printf("Failed to parse ip header\n\n");
@@ -40,18 +49,27 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 
 	print_ip_packet(&ip, stdout);
 
+	if (ip.protocol == IP_PROTOCOL_ICMP)
+	{
+		printf("\t(ICMP)\n");
+	}
+	else if (ip.protocol == IP_PROTOCOL_TCP)
+	{
+		printf("\t(TCP)\n");
+	}
+	else if (ip.protocol == IP_PROTOCOL_UDP)
+	{
+		if (!parse_udp_packet(ip.payload, ip.payload_length, &udp, ip.pseudo_hdr))
+		{
+			printf("Failed to parse udp header\n\n");
+			return;
+		}
+
+		print_udp_packet(&udp, stdout);
+	}
+
+	print_packet(ethr.payload, ethr.payload_length, stdout);
 	printf("\n");
-
-	// for (i = 0; i < pkthdr->len; i++)
-	// {
-	// 	if (isprint(packet[i]))
-	// 		printf("%c ", packet[i]);
-	// 	else
-	// 		printf(" . ");
-	// 	if((i%16==0 && i!=0)|| i == pkthdr->len-1)
-	// 		printf("\n");
-	// }
-
 }
 
 int main(int argc, char **argv)
@@ -73,14 +91,30 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+	// pcap_if_t *alldevsp;       /* list of interfaces */
+
+	// if (pcap_findalldevs (&alldevsp, errbuf) < 0)   
+	// {
+	// 	fprintf (stderr, "%s", errbuf);
+	// 	exit (1);
+	// }
+	// while (alldevsp != NULL)
+	// {
+	// 	printf ("%s\n", alldevsp->name);
+	// 	alldevsp = alldevsp->next;
+	// }
+
 	/*Get a device*/
 
-	dev = pcap_lookupdev(errbuf);
+	// dev = pcap_lookupdev(errbuf);
+	dev = "lo";
 	if (dev == NULL)
 	{
 		fprintf(stderr, "%s\n",errbuf);
 		exit(1);
 	}
+
+	fprintf(stdout, "listening on device \"%s\"\n", dev);
 
 	/*Get network addr and mask*/
 	pcap_lookupnet(dev, &netp, &maskp, errbuf);
@@ -108,20 +142,3 @@ int main(int argc, char **argv)
 	pcap_loop(descr,-1, callback, NULL);
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

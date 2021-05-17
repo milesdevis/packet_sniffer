@@ -5,11 +5,17 @@
 #include <stdlib.h>
 #include <pcap.h>
 
+#define IP_PROTOCOL_ICMP 1
+#define IP_PROTOCOL_TCP 6
+#define IP_PROTOCOL_UDP 17
+
 struct ip_packet
 {
 	char *src_ip;
 	char *dst_ip;
+	u_int32_t pseudo_hdr;
 	u_int version;
+	u_int protocol;
 	const u_char *payload;
 	size_t payload_length;
 };

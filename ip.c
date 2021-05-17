@@ -20,15 +20,30 @@ struct ip_header
 	u_int16_t ip_sum;
 	struct in_addr ip_src;
 	struct in_addr ip_dst;
-};
+} __attribute__((__packed__));
+
+u_int32_t calculate_pseudo_hdr(
+	const struct ip_header *hdr, size_t payload_length)
+{
+	u_int32_t res = 0;
+
+	res += ntohs(hdr->ip_src.s_addr & 0xffff);
+	res += ntohs((hdr->ip_src.s_addr >> 16) & 0xffff);
+
+	res += ntohs(hdr->ip_dst.s_addr & 0xffff);
+	res += ntohs((hdr->ip_dst.s_addr >> 16) & 0xffff);
+
+	res += hdr->ip_p;
+	res += (u_int32_t) payload_length;
+
+	return res;
+}
 
 int parse_ip_packet(
 	const u_char *packet, size_t packet_length, struct ip_packet *out)
 {
 	const struct ip_header *hdr;
-	// u_int length = pkthdr->len;
 	u_int hlen,off,version;
-	// int i;
 	int len;
 
 	if (packet_length < sizeof(struct ip_header))
@@ -55,7 +70,6 @@ int parse_ip_packet(
 		return 0;
 	}
 
-	/* see if we have as much packet as we should */
 	if (packet_length < len)
 	{
 		fprintf(stdout, "Truncated IP - %ld bytes missing\n", len - packet_length);
@@ -72,14 +86,19 @@ int parse_ip_packet(
 	out->src_ip = inet_ntoa(hdr->ip_src);
 	out->dst_ip = inet_ntoa(hdr->ip_dst);
 	out->version = version;
-	out->payload = packet + hlen;
-	out->payload_length = packet_length - hlen;
+	out->protocol = hdr->ip_p;
+	out->payload = packet + hlen * 4;
+	out->payload_length = packet_length - hlen * 4;
+
+	out->pseudo_hdr = calculate_pseudo_hdr(hdr, out->payload_length);
 
 	return 1;
 }
 
 void print_ip_packet(struct ip_packet *hdr, FILE *output)
 {
-	fprintf(output, "\tIP:\t%d\t%s -> %s\n",
-		hdr->version, hdr->src_ip, hdr->dst_ip);
+	int i;
+
+	fprintf(output, "\tIP:\t%s -> %s\t%d\n",
+		hdr->src_ip, hdr->dst_ip, hdr->version);
 }
