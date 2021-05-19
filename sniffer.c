@@ -3,13 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-// #include <arpa/inet.h>
-// #include <netinet/if_ether.h>
 
 #include "ethernet.h"
 #include "ip.h"
+#include "tcp.h"
 #include "udp.h"
 #include "util.h"
 
@@ -19,11 +16,11 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 	static int count = 0;
 	struct ethernet_packet ethr;
 	struct ip_packet ip;
+	struct tcp_packet tcp;
 	struct udp_packet udp;
 
 	printf("Packet Count: %d\n", ++count);
 	printf("Recieved Packet size : %d\n", pkthdr->len);
-	// printf("Payload:\n");
 
 	if (!parse_ethernet_packet(args, pkthdr, packet, &ethr))
 	{
@@ -55,13 +52,19 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 	}
 	else if (ip.protocol == IP_PROTOCOL_TCP)
 	{
-		printf("\t(TCP)\n");
+		if (!parse_tcp_packet(ip.payload, ip.payload_length, &tcp, ip.pseudo_hdr))
+		{
+			printf("Failed to parse TCP header\n\n");
+			return;
+		}
+
+		print_tcp_packet(&tcp, stdout);
 	}
 	else if (ip.protocol == IP_PROTOCOL_UDP)
 	{
 		if (!parse_udp_packet(ip.payload, ip.payload_length, &udp, ip.pseudo_hdr))
 		{
-			printf("Failed to parse udp header\n\n");
+			printf("Failed to parse UDP header\n\n");
 			return;
 		}
 

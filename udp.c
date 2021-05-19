@@ -13,7 +13,7 @@ struct udp_header
 	u_int16_t checksum;
 } __attribute__((packed));
 
-u_int16_t calculate_checksum(
+u_int16_t calculate_udp_checksum(
 	struct udp_header *hdr, u_int32_t ip_pseudo_hdr,
 	const u_char *payload, size_t payload_length)
 {
@@ -55,7 +55,7 @@ int parse_udp_packet(
 
 	if (packet_length < sizeof(struct udp_header))
 	{
-		fprintf(stderr, "Packet shorter than udp header\n");
+		fprintf(stderr, "Packet shorter than UDP header\n");
 		return 0;
 	}
 
@@ -67,7 +67,7 @@ int parse_udp_packet(
 	out->payload = packet + sizeof(struct udp_header);
 	out->payload_length = packet_length - sizeof(struct udp_header);
 
-	out->calc_checksum = calculate_checksum(hdr, ip_pseudo_hdr, out->payload, out->payload_length);
+	out->calc_checksum = calculate_udp_checksum(hdr, ip_pseudo_hdr, out->payload, out->payload_length);
 
 	return 1;
 }
