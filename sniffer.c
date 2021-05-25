@@ -159,8 +159,7 @@ int main(int argc, char **argv)
 
 	/*Get a device*/
 
-	// dev = pcap_lookupdev(errbuf);
-	dev = "lo";
+	dev = pcap_lookupdev(errbuf);
 	if (dev == NULL)
 	{
 		fprintf(stderr, "%s\n",errbuf);
