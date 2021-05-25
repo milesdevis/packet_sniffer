@@ -10,8 +10,8 @@
 
 struct ethernet_packet
 {
-	char *dst_addr;
-	char *src_addr;
+	char dst_addr[20];
+	char src_addr[20];
 	u_int16_t type;
 	const u_char *payload;
 	size_t payload_length;

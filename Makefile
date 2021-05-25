@@ -3,7 +3,7 @@
 TARGET := sniffer
 OBJ_DIR := obj
 
-SRCS := sniffer.c ethernet.c ip.c tcp.c udp.c util.c
+SRCS := sniffer.c ethernet.c ip.c tcp.c udp.c util.c csv.c
 OBJS := $(SRCS:%=$(OBJ_DIR)/%.o)
 DEPS := $(OBJS:.o=.d)
 

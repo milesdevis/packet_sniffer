@@ -2,6 +2,7 @@
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 
 #include "ethernet.h"
@@ -10,10 +11,18 @@
 #include "udp.h"
 #include "util.h"
 
+#include "csv.h"
+
+struct callback_args
+{
+	FILE *csv_output;
+};
+
 void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* packet)
 {
 	int i = 0;
 	static int count = 0;
+	struct callback_args *cargs = (struct callback_args*) args;
 	struct ethernet_packet ethr;
 	struct ip_packet ip;
 	struct tcp_packet tcp;
@@ -29,8 +38,6 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 	}
 
 	print_ethernet_packet(&ethr, stdout);
-	free(ethr.dst_addr);
-	free(ethr.src_addr);
 
 	if (ethr.type != ETHERTYPE_IP)
 	{
@@ -73,12 +80,43 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 
 	print_packet(ethr.payload, ethr.payload_length, stdout);
 	printf("\n");
+
+	if (cargs->csv_output)
+	{
+		csv_write_record(cargs->csv_output, &ethr, &ip, &udp, &tcp);
+		fflush(cargs->csv_output);
+	}
+}
+
+int parse_args(int argc, char **argv, char **expr, char **filename)
+{
+	*expr = NULL;
+	*filename = NULL;
+
+	if (argc < 2)
+		return 0;
+
+	if (strcmp(argv[1], "--output") == 0)
+	{
+		if (argc != 4)
+			return 0;
+
+		*filename = argv[2];
+		*expr = argv[3];
+	}
+	else
+	{
+		if (argc != 2)
+			return 0;
+
+		*expr = argv[1];
+	}
 }
 
 int main(int argc, char **argv)
 {
 	int i;
-	char *dev;
+	char *dev, *expr = NULL, *filename = NULL;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t* descr;
 	const u_char *packet;
@@ -87,11 +125,23 @@ int main(int argc, char **argv)
 	struct bpf_program fp;
 	bpf_u_int32 maskp;
 	bpf_u_int32 netp;
+	struct callback_args cargs;
 
-	if(argc != 2)
+	if (!parse_args(argc, argv, &expr, &filename))
 	{
-		fprintf(stdout, "Usage: %s \"expression\"\n", argv[0]);
+		fprintf(stdout, "Usage: %s [ --output filename ] \"expression\"\n", argv[0]);
 		return 0;
+	}
+
+	if (filename)
+	{
+		cargs.csv_output = fopen(filename, "w");
+
+		csv_write_header(cargs.csv_output);
+	}
+	else
+	{
+		cargs.csv_output = NULL;
 	}
 
 	// pcap_if_t *alldevsp;       /* list of interfaces */
@@ -130,7 +180,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if(pcap_compile(descr,&fp, argv[1], 0, netp) == -1)
+	if(pcap_compile(descr,&fp, expr, 0, netp) == -1)
 	{
 		fprintf(stderr, "Error calling pcap_compile\n");
 		exit(1);
@@ -142,6 +192,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	pcap_loop(descr,-1, callback, NULL);
+	printf("cargs: %p\n", (void*) &cargs);
+	pcap_loop(descr, -1, callback, (u_char*) &cargs);
 	return 0;
 }

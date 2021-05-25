@@ -14,16 +14,11 @@ struct ethernet_header
 	u_int16_t type;
 } __attribute__((__packed__));
 
-char* ether_addr_to_str(struct ethernet_addr *addr)
+void ether_addr_to_str(struct ethernet_addr *addr, char *out)
 {
-	char *res;
-
-	res = (char*) malloc(sizeof(char) * (ETHERNET_ADDR_LENGTH * 2));
-	sprintf(res, "%02x:%02x:%02x:%02x:%02x:%02x",
+	sprintf(out, "%02x:%02x:%02x:%02x:%02x:%02x",
 		addr->addr[0], addr->addr[1], addr->addr[2],
 		addr->addr[3], addr->addr[4], addr->addr[5]);
-
-	return res;
 }
 
 int parse_ethernet_packet(
@@ -41,8 +36,8 @@ int parse_ethernet_packet(
 	hdr = (struct ethernet_header*) packet;
 
 	out->type = (hdr->type << 8) | (hdr->type >> 8);
-	out->dst_addr = ether_addr_to_str(&hdr->dst_addr);
-	out->src_addr = ether_addr_to_str(&hdr->src_addr);
+	ether_addr_to_str(&hdr->dst_addr, out->dst_addr);
+	ether_addr_to_str(&hdr->src_addr, out->src_addr);
 	out->payload = packet + sizeof(struct ethernet_header);
 	out->payload_length = pkthdr->caplen - sizeof(struct ethernet_header);
 
