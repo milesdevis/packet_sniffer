@@ -78,7 +78,7 @@ void callback(u_char *args, const struct pcap_pkthdr* pkthdr, const u_char* pack
 		print_udp_packet(&udp, stdout);
 	}
 
-	print_packet(ethr.payload, ethr.payload_length, stdout);
+	print_packet(packet, pkthdr->caplen, stdout);
 	printf("\n");
 
 	if (cargs->csv_output)
@@ -191,7 +191,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	printf("cargs: %p\n", (void*) &cargs);
 	pcap_loop(descr, -1, callback, (u_char*) &cargs);
 	return 0;
 }

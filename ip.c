@@ -1,5 +1,7 @@
 #include "ip.h"
 
+#include <string.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -83,8 +85,8 @@ int parse_ip_packet(
 		return 0;
 	}
 
-	out->src_ip = inet_ntoa(hdr->ip_src);
-	out->dst_ip = inet_ntoa(hdr->ip_dst);
+	strcpy(out->src_ip, inet_ntoa(hdr->ip_src));
+	strcpy(out->dst_ip, inet_ntoa(hdr->ip_dst));
 	out->version = version;
 	out->protocol = hdr->ip_p;
 	out->payload = packet + hlen * 4;

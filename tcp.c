@@ -1,5 +1,7 @@
 #include "tcp.h"
 
+#include <string.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -77,6 +79,8 @@ int parse_tcp_packet(
     out->dst_port = ntohs(hdr->th_dport);
 	out->sequence = ntohl(hdr->th_seq);
 	out->ack = ntohl(hdr->th_ack);
+	out->flags = hdr->th_flags;
+    out->window = ntohs(hdr->th_win);
 	out->payload = packet + sizeof(struct tcp_header);
 	out->payload_length = packet_length - sizeof(struct tcp_header);
 
@@ -88,17 +92,72 @@ int parse_tcp_packet(
 
 void print_tcp_packet(struct tcp_packet *pkt, FILE *output)
 {
-	fprintf(output, "\tTCP:\t%d -> %d", pkt->src_port, pkt->dst_port);
+	fprintf(output, "\tTCP:\t%d -> %d\n", pkt->src_port, pkt->dst_port);
 
 	if (pkt->recv_checksum == pkt->calc_checksum)
 	{
-		fprintf(output, "\tchecksum: OK (0x%02x)", pkt->calc_checksum);
+		fprintf(output, "\t\tchecksum: OK (0x%02x)\n", pkt->calc_checksum);
 	}
 	else
 	{
-		fprintf(output, "\tchecksum: ERR (0x%04x != 0x%04x)",
+		fprintf(output, "\t\tchecksum: ERR (0x%04x != 0x%04x)\n",
 			pkt->recv_checksum, pkt->calc_checksum);
 	}
 
-	fprintf(output, "\tseq: %u\tack: %u\n", pkt->sequence, pkt->ack);
+	fprintf(output, "\t\tseq: %u, ack: %u, window: %u, flags (", pkt->sequence, pkt->ack, pkt->window);
+	print_tcp_flags(pkt->flags, output);
+	fprintf(output, ")\n");
+}
+
+void print_tcp_flags(u_int8_t flags, FILE *output)
+{
+	char junc[3] = "";
+
+	if (flags & TH_FIN)
+	{
+		fprintf(output, "%s%s", junc, "FIN");
+		strcpy(junc, ", ");
+	}
+
+	if (flags & TH_SYN)
+	{
+		fprintf(output, "%s%s", junc, "SYN");
+		strcpy(junc, ", ");
+	}
+
+	if (flags & TH_RST)
+	{
+		fprintf(output, "%s%s", junc, "RST");
+		strcpy(junc, ", ");
+	}
+
+	if (flags & TH_PUSH)
+	{
+		fprintf(output, "%s%s", junc, "PSH");
+		strcpy(junc, ", ");
+	}
+
+	if (flags & TH_ACK)
+	{
+		fprintf(output, "%s%s", junc, "ACK");
+		strcpy(junc, ", ");
+	}
+
+	if (flags & TH_URG)
+	{
+		fprintf(output, "%s%s", junc, "URG");
+		strcpy(junc, ", ");
+	}
+
+	if (flags & TH_ECE)
+	{
+		fprintf(output, "%s%s", junc, "ECE");
+		strcpy(junc, ", ");
+	}
+
+	if (flags & TH_CWR)
+	{
+		fprintf(output, "%s%s", junc, "CWR");
+		strcpy(junc, ", ");
+	}
 }

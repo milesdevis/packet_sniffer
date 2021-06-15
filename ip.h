@@ -11,8 +11,8 @@
 
 struct ip_packet
 {
-	char *src_ip;
-	char *dst_ip;
+	char src_ip[20];
+	char dst_ip[20];
 	u_int32_t pseudo_hdr;
 	u_int version;
 	u_int protocol;
